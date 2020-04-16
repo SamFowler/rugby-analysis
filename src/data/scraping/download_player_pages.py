@@ -3,32 +3,35 @@ import requests
 import pandas as pd
 import sys
 import time
+import sgmgmt
 
-sys.stdout = open('../../../logs/scrape_player_pages_log', 'w')
+sys.stdout = open('../../../logs/download_player_pages.log', 'w')
 
-player_data = pd.read_csv('../../../data/external/scraped_england_player_data.csv')
-player_data = player_data[['SG_PlayerID','Website']]
+page_type = 'player'
+path = f"../../../data/external"
+base_url = f"http://stats.espnscrum.com/statsguru/rugby/{page_type}"
 
-for ind, row in player_data.iterrows():
-	
-	time.sleep(2)
-	if (ind != 0) and (ind % 35 == 0):
-		print("Waiting 30 seconds...", flush=True)
-		time.sleep(30)
+#get list of sgids
+#id_list = pd.read_csv("../../../data/processed/wrangled_all_matches.csv")['ground_sgid'].unique().tolist()
+id_list = range(1000,16000)
 
-	player_id = row['SG_PlayerID']
-	player_url = row['Website']
+for sg_id in id_list:
 
-	response = requests.get(player_url)
-	if response:
-		print(f'Writing player page {player_id}', flush=True)
-		page = response.text
-		soup = bs(page, 'html.parser')
-		file = open(f"../../../data/external/player_pages/{player_id}.html", "w")
-		file.write(soup.prettify())
-		file.close()
+	if sg_id == 0:
+		continue
 
+	filepath = f"{path}/{page_type}_pages/{str(sg_id)}.html"
+
+	if not sgmgmt.check_page_saved(filepath):
+		print(f"Saving {page_type} {sg_id} from website")
+		match_url = f"{base_url}/{sg_id}.html?view=scorecard"
+		if sgmgmt.request_page(match_url):
+			html = sgmgmt.request_page(match_url).text
+			sgmgmt.save_page_html(html, filepath)
+			time.sleep(15)
+		else:
+			print(f"Could not fetch page {page_type} {sg_id}, skipping")
+			continue
+		
 	else:
-		print(f'Player {player_id} does not exist', flush=True)
-
-sys.stdout.close()
+		print(f"Page already saved for {page_type} {sg_id}")	
