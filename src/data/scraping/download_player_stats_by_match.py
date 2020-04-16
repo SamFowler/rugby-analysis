@@ -2,21 +2,23 @@ from bs4 import BeautifulSoup as bs
 import requests
 import time
 import sgmgmt
+import codecs
 
 url = 'http://stats.espnscrum.com/statsguru/rugby/stats/index.html?class=1;filter=advanced;orderby=player;size=200;template=results;type=player;view=match'
 
-save_path = f"../../../data/external/player_stats_by_match_pages"
+save_path = f"../../../data/external/player_stats_by_match_pages/"
 
 first_page_url = f"{url};page=1"
 filepath = save_path + sgmgmt.get_filepath(first_page_url)
-
 print("Fetching first page from website")
-html = sgmgmt.request_page(first_page_url).text
 
 if not sgmgmt.check_page_saved(filepath):
-		print(f"Saving page 1 of search", flush=True)
-		sgmgmt.save_page_html(html, filepath)
-		time.sleep(60)
+	print(f"Saving page 1 of search", flush=True)
+	html = sgmgmt.request_page(first_page_url).text
+	sgmgmt.save_page_html(html, filepath)
+	time.sleep(60)
+else:
+	html = codecs.open(filepath, 'r').read()
 
 soup = bs(html, 'html.parser')
 num_pages = int(soup.find(lambda tag: tag.name=="span" and "Page" in tag.text).text.split()[-1])
